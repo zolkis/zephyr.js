@@ -1157,7 +1157,6 @@ u32_t terminal_init()
 {
     DBG("[SHELL] Init\n");
     ashell_run_boot_cfg();
-
     return 0;
 }
 

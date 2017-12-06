@@ -317,19 +317,6 @@ static int uart_out(int c)
     return 1;
 }
 
-u32_t uart_get_baudrate(void)
-{
-    u32_t baudrate;
-
-    int ret = uart_line_ctrl_get(dev_upload, LINE_CTRL_BAUD_RATE, &baudrate);
-    if (ret)
-        printk("Fail baudrate %d\n", ret);
-    else
-        printk("Baudrate %d\n", (int)baudrate);
-
-    return baudrate;
-}
-
 static void uart_ready()
 {
     // Need a short wait after uart_line_ctrl_get success
@@ -461,6 +448,49 @@ void uart_init()
 
     k_fifo_init(&data_queue);
     k_fifo_init(&avail_queue);
+
+    ashell_run_boot_cfg();
+
+#ifdef CONFIG_UART_LINE_CTRL
+    u32_t dtr = 0;
+
+    while (1) {
+        uart_line_ctrl_get(dev_upload, LINE_CTRL_DTR, &dtr);
+        if (dtr)
+            break;
+        // Sleep is needed to allow the javascript in boot.cfg to run
+        // while we wait for the connection.
+        k_sleep(1000);
+    }
+
+    /* 1000 msec = 1 sec */
+    k_sleep(1000);
+
+#endif
+
+    uart_irq_rx_disable(dev_upload);
+    uart_irq_tx_disable(dev_upload);
+
+    uart_irq_callback_set(dev_upload, uart_interrupt_handler);
+    terminal->send(banner, sizeof(banner));
+
+    /* Enable rx interrupts */
+    uart_irq_rx_enable(dev_upload);
+    DBG("[Listening]\n");
+
+    __stdout_hook_install(uart_out);
+
+    // Disable buffering on stdout since some parts write directly to uart fifo
+    setbuf(stdout, NULL);
+
+    ashell_help("");
+    comms_print(comms_get_prompt());
+    process_state = 0;
+
+    atomic_set(&uart_state, UART_INIT);
+
+    DBG("[Init]\n");
+    terminal->init();
 }
 
 void zjs_ashell_init()

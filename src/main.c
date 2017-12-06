@@ -21,10 +21,7 @@
 #include "zjs_script.h"
 #include "zjs_util.h"
 #ifdef ZJS_ASHELL
-#include <gpio.h>
-#include "zjs_board.h"
 #include "ashell/ashell.h"
-#include "ashell/file-utils.h"
 #endif
 
 // JerryScript includes
