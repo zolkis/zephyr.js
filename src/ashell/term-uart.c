@@ -462,13 +462,3 @@ void uart_init()
     k_fifo_init(&data_queue);
     k_fifo_init(&avail_queue);
 }
-
-void zjs_ashell_init()
-{
-    uart_init();
-}
-
-void zjs_ashell_process()
-{
-    uart_process();
-}

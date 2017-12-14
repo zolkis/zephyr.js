@@ -44,21 +44,7 @@ void ide_receive(u8_t *buffer, size_t len)
     }
 }
 
-// Init WebUSB with a receiver callback. Send IDE mode and version.
-void ide_init()
-{
-    extern void parser_init();
-    webusb_init(ide_receive);  // init callback for handling input from WebUSB
-    parser_init();
-    //ide_send_init();
-}
-
-// For periodic jobs called from mainloop.
-void ide_process()
-{
-    // For now, nothing to do, as all input is handled in driver context.
-}
-
+#define ASHELL_IDE_UART 1  // Use WebUSB over UART for now.
 #if ASHELL_IDE_UART
 int ide_send_buffer(char *buf, size_t len)
 {

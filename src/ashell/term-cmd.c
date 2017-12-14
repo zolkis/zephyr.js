@@ -24,6 +24,7 @@
 #endif
 
 // ZJS includes
+#include "ashell.h"
 #include "term-uart.h"
 #include "term-cmd.h"
 #include "term-ihex.h"
@@ -1255,9 +1256,12 @@ u32_t terminal_process(const char *buf, u32_t len)
             }
 
             u32_t length = strnlen(shell_line, MAX_LINE);
-
+#if ASHELL_IDE_PROTOCOL
+            extern void ide_receive(u8_t *buf, size_t len);
+            ide_receive((u8_t *)shell_line, length);
+#else
             ashell_main_state(shell_line, length);
-
+#endif
             comms_print("\r\n");
             comms_print(comms_get_prompt());
 

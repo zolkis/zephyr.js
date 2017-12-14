@@ -5,7 +5,6 @@
 
 #include <arch/cpu.h>
 #include <string.h>
-#include "webusb-ide.h"
 
 #define ASCII_SUB    0x1A  // substitute, Ctrl+Z
 #define ASCII_FS     0x1C  // file separator

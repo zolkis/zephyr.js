@@ -1,0 +1,74 @@
+# Copyright (c) 2016-2017, Intel Corporation.
+
+ifdef V
+$(info Compiling application)
+endif
+
+# Adding path for jerry script APIs
+DEPS_BASE ?= $(ZJS_BASE)/deps
+ZEPHYRINCLUDE += -I$(JERRY_INCLUDE) -I$(DEPS_BASE)
+
+# ashell works either in console/terminal mode with CDC/ACM over a USB cable,
+#   or in console mode over WebUSB with zephyrjs-ide,
+#   or in IDE protocol mode over WebUSB with zephyrjs-ide.
+# Temporarily, 3 WebUSB drivers are being tested: WEBUSB = uart | raw | netbuf
+# "make clean;make ide ROM=256 ASHELL_IDE_PROTOCOL=0" builds console IDE + WebUSB + UART
+# "make clean;make ide ROM=256" builds IDE protocol + WebUSB + UART
+# "make clean;make ide ROM=256 WEBUSB=netbuf" builds IDE protocol + WebUSB + netbuf
+# "make clean;make ide ROM=256 WEBUSB=raw" builds IDE protocol + WebUSB + raw
+
+ifeq ($(CONFIG_USB_CDC_ACM),y)
+USE_UART = 1
+ASHELL_IDE_PROTOCOL = 0
+else
+USE_UART = 0
+ASHELL_IDE_PROTOCOL ?= 1
+WEBUSB ?= uart
+ZEPHYRINCLUDE += -I${ZEPHYR_BASE}/include/drivers/usb \
+                 -I${ZEPHYR_BASE}/subsys/usb/class \
+                 -I$(ZEPHYR_BASE)/include/usb \
+
+# Choose WebUSB driver.
+# Raw and netbuf drivers are experimental and temporarily hosted in ashell.
+ifeq ($(WEBUSB), uart)
+ZEPHYRINCLUDE += -I$(ZEPHYR_BASE)/samples/subsys/usb/webusb/src
+obj-y += ../../deps/zephyr/samples/subsys/usb/webusb/src/webusb_serial.o
+else
+obj-y += webusb-driver-$(WEBUSB).o
+endif
+
+# App (ashell) specific WebUSB configuration.
+obj-y += webusb-$(WEBUSB).o
+
+ifeq ($(ASHELL_IDE_PROTOCOL),1)
+obj-y += ide-comms.o
+obj-y += ide-cmd.o
+ccflags-y += -DASHELL_IDE_PROTOCOL=1
+ifeq ($(WEBUSB), uart)
+USE_UART = 1
+ccflags-y += -DASHELL_IDE_UART=1
+endif
+else
+USE_UART = 1
+endif
+
+endif
+
+# TODO: separate ihex code to console mode only
+ifeq ($(USE_UART), 1)
+obj-y += term-ihex.o
+obj-y += term-uart.o
+obj-y += term-cmd.o
+obj-y += ../../deps/ihex/kk_ihex_read.o
+endif
+
+obj-y += ashell.o
+obj-y += file-utils.o
+obj-y += jerry-code.o
+
+ifneq ($(BOARD), linux)
+# Select extended ANSI C/POSIX function set in recent Newlib versions
+ccflags-y += -D_XOPEN_SOURCE=700
+endif
+ccflags-y += -I$(O)/include -I$(JERRY_BASE)/jerry-ext/include
+ccflags-y += -DZJS_ASHELL -Wall -Werror
